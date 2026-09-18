@@ -1,0 +1,6 @@
+name = "nebula-installer"
+main = "src/index.ts"
+compatibility_date = "2024-08-26"
+workers_dev = true
+
+account_id = "7070be82c3d9bfcd7962678850e9f7e3"

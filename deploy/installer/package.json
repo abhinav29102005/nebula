@@ -1,0 +1,13 @@
+{
+  "name": "nebula-installer",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker serving the NEBULA Agent installer script and landing portal",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "node ./node_modules/wrangler/bin/wrangler.js deploy",
+    "dev": "node ./node_modules/wrangler/bin/wrangler.js dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.132.0"
+  }
+}

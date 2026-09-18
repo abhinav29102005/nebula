@@ -1,0 +1,50 @@
+@echo off
+setlocal
+
+title NEBULA
+
+cd /d "%~dp0"
+
+echo ============================================================
+echo                    NEBULA
+echo ============================================================
+echo.
+
+if not exist ".venv" (
+    echo [INFO] First run: initializing Python virtual environment...
+    uv sync
+)
+
+set "UV_PATH=%USERPROFILE%\.local\bin"
+
+if exist "%UV_PATH%\uv.exe" (
+    set "PATH=%UV_PATH%;%PATH%"
+)
+
+where uv >nul 2>&1
+
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] uv could not be found.
+    echo.
+    echo Please run setup.bat again.
+    echo.
+    pause
+    exit /b 1
+)
+
+echo [INFO] Starting NEBULA...
+echo.
+
+uv run python main_gui.py
+
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo ============================================================
+    echo [ERROR] NEBULA exited with an error.
+    echo ============================================================
+    echo.
+    pause
+)
+
+endlocal
+
