@@ -421,8 +421,7 @@ async def run_text_mode(container) -> None:
                     prompt_str = f"nebula [{sess_name}] > "
                     line = await asyncio.to_thread(input, prompt_str)
             except KeyboardInterrupt:
-                Console().print("[dim](Input cleared. Type /exit or Ctrl+D to quit)[/dim]")
-                continue
+                break
             except EOFError:
                 break
 
@@ -569,6 +568,12 @@ async def run_no_wake_mode(container) -> None:
         await assistant.stop()
         await container.shutdown()
 
+        pending = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+        if pending:
+            _, pending_after = await asyncio.wait(pending, timeout=0.5)
+            for t in pending_after:
+                t.cancel()
+
 
 async def run_wakeword_mode(container) -> None:
     """Run in wake word mode (wake word + voice command)."""
@@ -636,6 +641,12 @@ async def run_wakeword_mode(container) -> None:
         await assistant.stop()
         await container.shutdown()
 
+        pending = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+        if pending:
+            _, pending_after = await asyncio.wait(pending, timeout=0.5)
+            for t in pending_after:
+                t.cancel()
+
 
 def main() -> None:
     # Fast-path CLI subcommands before general arg parsing
@@ -678,6 +689,10 @@ def main() -> None:
         except asyncio.CancelledError:
             pass
     finally:
+        # Give short-lived background tasks (like DB writes) a moment to finish cleanly
+        pending = [t for t in asyncio.all_tasks(loop=loop) if not t.done() and t is not main_task]
+        if pending:
+            loop.run_until_complete(asyncio.wait(pending, timeout=2.0))
         loop.close()
 
 
