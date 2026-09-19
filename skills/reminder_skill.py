@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 
 logger = get_logger("skills.reminder")
 
-DEFAULT_STORE = Path("data/reminders.json")
+DEFAULT_STORE = Path(__file__).resolve().parent.parent.parent / "data" / "reminders.json"
 
 
 @dataclass(frozen=True)

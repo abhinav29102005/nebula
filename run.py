@@ -398,7 +398,7 @@ async def run_text_mode(container) -> None:
                 history=SQLiteHistory(initial_history, container.db),
                 completer=completer,
                 complete_while_typing=False,
-                mouse_support=True,
+                
             )
         except Exception:
             prompt_session = None

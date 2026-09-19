@@ -128,7 +128,7 @@ class DatabaseManager:
 
         if self._engine is None:
             if not self.db_url or not self.db_url.startswith("sqlite"):
-                data_dir = Path("data")
+                data_dir = Path(__file__).resolve().parent.parent / "data"
                 data_dir.mkdir(parents=True, exist_ok=True)
                 sqlite_path = data_dir / "nebula.db"
                 self.db_url = f"sqlite+aiosqlite:///{sqlite_path.resolve()}"

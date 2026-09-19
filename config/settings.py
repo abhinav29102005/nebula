@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     app_env: str = Field(default="development")
     debug: bool = Field(default=False)
     log_level: str = Field(default="INFO")
-    log_dir: Path = Field(default=Path("logs"))
+    log_dir: Path = Field(default=Path(__file__).resolve().parent.parent / "logs")
 
     # ── LLM Integration (NVIDIA NIM) ──
     nvidia_api_key: SecretStr = Field(default=SecretStr(""))
@@ -231,7 +231,7 @@ class Settings(BaseSettings):
 
     # ── Context Memory ──
     memory_enabled: bool = Field(default=True)
-    memory_path: Path = Field(default=Path("data/memory.json"))
+    memory_path: Path = Field(default=Path(__file__).resolve().parent.parent / "data" / "memory.json")
     memory_max_facts: int = Field(default=200)
 
     # ── Orchestration & Security ──

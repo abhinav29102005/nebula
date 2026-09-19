@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 logger = get_logger("skills.notes")
 
-DEFAULT_STORE = Path("data/notes.json")
+DEFAULT_STORE = Path(__file__).resolve().parent.parent.parent / "data" / "notes.json"
 
 #: Notes read back in one listing. Spoken aloud, more than this is unusable.
 MAX_LISTED = 20
