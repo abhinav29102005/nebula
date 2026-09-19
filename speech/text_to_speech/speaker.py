@@ -25,8 +25,8 @@ class Speaker:
             try:
                 os.makedirs(os.path.dirname(TTS_MODEL_PATH), exist_ok=True)
                 model_name = os.path.basename(TTS_MODEL_PATH)
-                if "bryce" in model_name:
-                    url = "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/bryce/medium/en_US-bryce-medium.onnx"
+                if "alba" in model_name:
+                    url = "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/alba/medium/en_GB-alba-medium.onnx"
                 else:
                     url = "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx"
                 import urllib.request
@@ -42,9 +42,9 @@ class Speaker:
                     model_path=TTS_MODEL_PATH,
                     use_cuda=(TTS_DEVICE == "cuda")
                 )
-                # Nebula speaks with deliberate, theatrical James Spader pacing
+                # Ensure standard vocal pacing for the female Scottish voice
                 if hasattr(voice, "config") and hasattr(voice.config, "length_scale"):
-                    voice.config.length_scale = 1.12
+                    voice.config.length_scale = 1.0
                 self.voice_type = "piper"
                 return voice
             except Exception as e:

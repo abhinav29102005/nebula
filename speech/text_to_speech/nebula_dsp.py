@@ -1,13 +1,12 @@
 """
-speech/text_to_speech/nebula_dsp.py – Avengers: Age of Nebula Voice DSP Filter
-=============================================================================
-Recreates the iconic James Spader Nebula vocal processing:
-1. Deep baritone pitch/formant downward shift (-3 semitones)
-2. Theatrical, deliberate pacing (length scaling)
-3. Heavy mechanical chassis resonance (140Hz low-shelf boost)
-4. Vibranium metallic comb filtering (hollow robotic chamber reflection)
-5. Subtle 55Hz sub-harmonic ring modulation (electronic core hum)
-6. Warm analog tape soft-saturation (tanh) and peak-safe normalization
+speech/text_to_speech/nebula_dsp.py – Marvel's Nebula Voice DSP Filter
+======================================================================
+Recreates the cybernetic vocal processing for Karen Gillan's Nebula:
+1. Slight pitch modulation for synthetic tightness
+2. Standard pacing
+3. Crisp high-frequency shelf for robotic clarity
+4. Short metallic comb filtering (cyborg chassis reflection)
+5. Warm analog tape soft-saturation (tanh) and peak-safe normalization
 """
 from __future__ import annotations
 
@@ -25,39 +24,31 @@ class NebulaAudioChunk:
 def apply_nebula_voice_effect(
     audio: np.ndarray,
     sample_rate: int = 22050,
-    pitch_factor: float = 0.865,
-    comb_feedback: float = 0.38,
-    comb_delay_ms: float = 7.5,
-    bass_boost_gain: float = 0.45,
-    ring_mod_gain: float = 0.12,
-    saturation_drive: float = 1.35,
+    pitch_factor: float = 1.05,
+    comb_feedback: float = 0.45,
+    comb_delay_ms: float = 2.5,
+    high_shelf_gain: float = 0.35,
+    saturation_drive: float = 1.15,
 ) -> np.ndarray:
     """
-    Transform a raw voice audio signal into the unmistakable Nebula voice from Marvel's
-    Avengers: Age of Nebula.
+    Transform a raw voice audio signal into the unmistakable cyborg Nebula voice from Marvel.
     """
     if len(audio) == 0:
         return audio
 
     x = audio.astype(np.float32)
 
-    # 1. Pitch Shift Down into deep menacing baritone (~ -2.5 to -3 semitones)
+    # 1. Pitch Shift Up slightly for a tighter synthetic feel
     target_length = max(1, int(len(x) / pitch_factor))
     x_pitched = signal.resample(x, target_length)
 
-    # Elongate cadence slightly for James Spader's deliberate theatrical delivery
-    new_len = int(len(x) * 1.08)
-    indices = np.linspace(0, len(x_pitched) - 1, new_len)
-    x_pitched = np.interp(indices, np.arange(len(x_pitched)), x_pitched).astype(np.float32)
-
-    # 2. Low-frequency Bass Chassis Resonance (boost around 140-160Hz)
+    # 2. High-frequency Shelf (Crisp robotic clarity)
     nyquist = sample_rate / 2.0
-    cutoff = min(160.0 / nyquist, 0.95)
-    sos_bass = signal.iirfilter(2, cutoff, btype='lowpass', output='sos')
-    bass_component = signal.sosfilt(sos_bass, x_pitched) * bass_boost_gain
+    cutoff = min(3000.0 / nyquist, 0.95)
+    sos_high = signal.iirfilter(2, cutoff, btype='highpass', output='sos')
+    high_component = signal.sosfilt(sos_high, x_pitched) * high_shelf_gain
 
-    # 3. Metallic Comb Filter (Vibranium chassis acoustic resonance)
-    # Implemented via high-speed vectorized IIR filter: H(z) = 1 / (1 - a * z^-D)
+    # 3. Metallic Comb Filter (Cyborg chassis acoustic resonance)
     delay_samples = max(1, int((comb_delay_ms / 1000.0) * sample_rate))
     b = np.zeros(1, dtype=np.float32)
     b[0] = 1.0
@@ -66,15 +57,10 @@ def apply_nebula_voice_effect(
     a[-1] = -comb_feedback
     comb = signal.lfilter(b, a, x_pitched).astype(np.float32)
 
-    # 4. Subtle Sub-harmonic Ring Modulator (55Hz core hum)
-    t = np.arange(len(x_pitched), dtype=np.float32) / sample_rate
-    sub_carrier = np.sin(2 * np.pi * 55.0 * t).astype(np.float32)
-    ring_mod = x_pitched * sub_carrier * ring_mod_gain
+    # 4. Composite Mix: dry body + metallic reflection + crisp highs
+    mixed = (x_pitched * 0.65) + (comb * 0.35) + high_component
 
-    # 5. Composite Mix: dry body + metallic reflection + sub-bass + core hum
-    mixed = (x_pitched * 0.55) + (comb * 0.35) + bass_component + ring_mod
-
-    # 6. Warm Analog Tape Saturation (non-linear soft clipping via tanh)
+    # 5. Warm Analog Tape Saturation (non-linear soft clipping via tanh)
     saturated = np.tanh(mixed * saturation_drive)
 
     # Peak normalization to prevent digital distortion
