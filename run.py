@@ -328,10 +328,30 @@ async def run_text_mode(container) -> None:
     if is_interactive:
         try:
             from prompt_toolkit import PromptSession
-            from prompt_toolkit.history import FileHistory
+            from prompt_toolkit.history import History
             from prompt_toolkit.completion import NestedCompleter
 
-            history_file = os.path.expanduser("~/.nebula_history")
+            class SQLiteHistory(History):
+                def __init__(self, initial_strings, db_manager):
+                    super().__init__()
+                    self._initial_strings = initial_strings
+                    self.db = db_manager
+
+                def load_history_strings(self):
+                    for s in self._initial_strings:
+                        yield s
+
+                def store_string(self, string: str):
+                    if string.strip():
+                        import asyncio
+                        try:
+                            loop = asyncio.get_running_loop()
+                            loop.create_task(self.db.add_cli_history(string))
+                        except Exception:
+                            pass
+
+            initial_history = await container.db.get_cli_history()
+
             completer = NestedCompleter.from_nested_dict({
                 "/help": None,
                 "/model": {"dual": None, "groq": None, "nvidia": None, "qwen": None},
@@ -375,7 +395,7 @@ async def run_text_mode(container) -> None:
                 "/quit": None,
             })
             prompt_session = PromptSession(
-                history=FileHistory(history_file),
+                history=SQLiteHistory(initial_history, container.db),
                 completer=completer,
                 complete_while_typing=False,
             )

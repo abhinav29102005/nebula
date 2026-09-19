@@ -141,6 +141,8 @@ class AgentLoop:
         time_budget: float = DEFAULT_TIME_BUDGET,
         confirm: Confirmer | None = None,
         system_prompt: str = SYSTEM_PROMPT,
+        reflection_engine: Any = None,
+        session_id: str = "main",
     ) -> None:
         self.llm = llm
         self.dispatcher = dispatcher
@@ -148,6 +150,8 @@ class AgentLoop:
         self.time_budget = time_budget
         self.confirm = confirm
         self.system_prompt = system_prompt
+        self.reflection = reflection_engine
+        self.session_id = session_id
 
         if tools is None:
             from intelligence.tool_registry import schemas
@@ -211,9 +215,16 @@ class AgentLoop:
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": self._prompt_with_background(history)},
         ]
+        
+        if self.reflection:
+            lessons = await self.reflection.retrieve_lessons(utterance)
+            if lessons and lessons != "No past lessons available.":
+                messages.append({"role": "system", "content": f"IMPORTANT PAST LESSONS:\n{lessons}"})
+
         messages.append({"role": "user", "content": utterance})
 
         tools_used: list[str] = []
+        action_log: list[dict] = []
         steps = 0
         #: The last call executed, to notice a model going round in circles.
         last_signature: tuple[str, str] | None = None
@@ -240,7 +251,10 @@ class AgentLoop:
 
             if not response.wants_tools:
                 text = (response.content or "").strip() or EMPTY_MESSAGE
-                return AgentResult(text=text, tools_used=tools_used, steps=steps)
+                result = AgentResult(text=text, tools_used=tools_used, steps=steps)
+                if self.reflection:
+                    await self.reflection.reflect_on_task(self.session_id, utterance, "", action_log, text)
+                return result
 
             # The assistant's tool-call turn has to be in the transcript before
             # its results are, or the provider rejects the tool messages as
@@ -250,8 +264,11 @@ class AgentLoop:
             for call in response.tool_calls:
                 if steps >= self.max_steps or time.monotonic() >= deadline:
                     logger.info(f"Agent budget reached after {steps} tool calls")
+                    res_text = self._budget_text(response)
+                    if self.reflection:
+                        await self.reflection.reflect_on_task(self.session_id, utterance, "", action_log, f"FAILED/BUDGET: {res_text}")
                     return AgentResult(
-                        text=self._budget_text(response),
+                        text=res_text,
                         tools_used=tools_used,
                         steps=steps,
                         hit_budget=True,
@@ -287,6 +304,8 @@ class AgentLoop:
                     continue
 
                 output = await self._run_one(call)
+                action_log.append({"tool": call.name, "args": call.arguments, "success": output.ran, "result": output.text[:500]})
+                
                 if output.ran:
                     tools_used.append(call.name)
 
@@ -315,7 +334,24 @@ class AgentLoop:
                 and output.ran
                 and not output.text.startswith("Error")
             ):
-                return AgentResult(text=output.text, tools_used=tools_used, steps=steps)
+                result = AgentResult(text=output.text, tools_used=tools_used, steps=steps)
+                if self.reflection:
+                    await self.reflection.reflect_on_task(self.session_id, utterance, "", action_log, output.text)
+                return result
+
+    async def run_autonomous(self, goal: str) -> None:
+        """Runs the agent in a continuous autonomous loop for a high-level goal."""
+        logger.info(f"Starting autonomous mode for goal: {goal}")
+        iteration = 0
+        while iteration < 5:  # Limit autonomous steps for safety
+            iteration += 1
+            instruction = f"Autonomous Goal: {goal}. Step {iteration}. Analyze what needs to be done next and take action. If the goal is fully complete, say 'GOAL_COMPLETE'."
+            result = await self.run(instruction)
+            if "GOAL_COMPLETE" in result.text or result.hit_budget:
+                logger.info(f"Autonomous goal finished: {result.text}")
+                break
+            await asyncio.sleep(2)
+
 
     # ── one tool call ─────────────────────────────────────────────────────
 

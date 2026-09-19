@@ -77,6 +77,28 @@ user_settings_table = Table(
     Column("updated_at", DateTime, default=lambda: datetime.now(timezone.utc)),
 )
 
+# Table: cli_history
+cli_history_table = Table(
+    "cli_history",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("command", Text, nullable=False),
+    Column("timestamp", DateTime, default=lambda: datetime.now(timezone.utc)),
+)
+
+# Table: agent_trajectories (Episodic Memory)
+agent_trajectories_table = Table(
+    "agent_trajectories",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("session_id", String(64), nullable=True),
+    Column("prompt", Text, nullable=False),
+    Column("plan", Text, nullable=True),
+    Column("actions_json", Text, default="[]"),
+    Column("outcome", Text, nullable=True),
+    Column("timestamp", DateTime, default=lambda: datetime.now(timezone.utc)),
+)
+
 
 class DatabaseManager:
     """Manages async database connections, migrations, and operations."""
@@ -317,6 +339,63 @@ class DatabaseManager:
     async def close(self) -> None:
         if self._engine:
             await self._engine.dispose()
+
+    # ── CLI History ──────────────────────────────────────────────────────────
+
+    async def add_cli_history(self, command: str) -> None:
+        async with self._session_factory() as session:
+            now = datetime.now(timezone.utc)
+            ins = insert(cli_history_table).values(command=command, timestamp=now)
+            await session.execute(ins)
+            await session.commit()
+
+    async def get_cli_history(self, limit: int = 1000) -> List[str]:
+        async with self._session_factory() as session:
+            stmt = select(cli_history_table.c.command).order_by(cli_history_table.c.id.asc()).limit(limit)
+            res = await session.execute(stmt)
+            return [row[0] for row in res.fetchall()]
+
+    # ── Episodic Memory ──────────────────────────────────────────────────────
+
+    async def add_trajectory(
+        self,
+        session_id: Optional[str],
+        prompt: str,
+        plan: str,
+        actions: List[Dict[str, Any]],
+        outcome: str
+    ) -> int:
+        async with self._session_factory() as session:
+            now = datetime.now(timezone.utc)
+            ins = insert(agent_trajectories_table).values(
+                session_id=session_id,
+                prompt=prompt,
+                plan=plan,
+                actions_json=json.dumps(actions or []),
+                outcome=outcome,
+                timestamp=now,
+            )
+            res = await session.execute(ins)
+            await session.commit()
+            return res.inserted_primary_key[0] if res.inserted_primary_key else 0
+
+    async def get_recent_trajectories(self, limit: int = 10) -> List[Dict[str, Any]]:
+        async with self._session_factory() as session:
+            stmt = select(agent_trajectories_table).order_by(agent_trajectories_table.c.timestamp.desc()).limit(limit)
+            res = await session.execute(stmt)
+            rows = res.fetchall()
+            return [
+                {
+                    "id": r.id,
+                    "session_id": r.session_id,
+                    "prompt": r.prompt,
+                    "plan": r.plan,
+                    "actions": json.loads(r.actions_json or "[]"),
+                    "outcome": r.outcome,
+                    "timestamp": r.timestamp.isoformat() if r.timestamp else None,
+                }
+                for r in rows
+            ]
 
 
 # Global default database instance

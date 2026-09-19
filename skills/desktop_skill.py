@@ -111,6 +111,26 @@ def _type_text(text: str) -> None:
     pyautogui.typewrite(text, interval=0.01)
 
 
+def _move_mouse(x: int, y: int, duration: float = 0.2) -> None:
+    import pyautogui
+    pyautogui.moveTo(x, y, duration=duration)
+
+
+def _click_mouse(x: int | None, y: int | None, button: str = "left", clicks: int = 1) -> None:
+    import pyautogui
+    pyautogui.click(x=x, y=y, button=button, clicks=clicks)
+
+
+def _drag_mouse(x: int, y: int, duration: float = 0.5, button: str = "left") -> None:
+    import pyautogui
+    pyautogui.dragTo(x, y, duration=duration, button=button)
+
+
+def _scroll_mouse(clicks: int) -> None:
+    import pyautogui
+    pyautogui.scroll(clicks)
+
+
 class DesktopSkill(Skill):
     """Focus a window and send it keystrokes."""
 
@@ -128,6 +148,14 @@ class DesktopSkill(Skill):
                 return await self._focus_window(params)
             if intent == "press_keys":
                 return await self._press_keys(params)
+            if intent == "move_mouse":
+                return await self._handle_move_mouse(params)
+            if intent == "click_mouse":
+                return await self._handle_click_mouse(params)
+            if intent == "drag_mouse":
+                return await self._handle_drag_mouse(params)
+            if intent == "scroll_mouse":
+                return await self._handle_scroll_mouse(params)
         except ImportError:
             return _INSTALL_HINT
         except Exception as exc:
@@ -170,6 +198,34 @@ class DesktopSkill(Skill):
 
         await asyncio.to_thread(_press, keys)
         return f"Pressed {'+'.join(keys)}."
+
+    async def _handle_move_mouse(self, params: dict) -> str:
+        x, y = int(params.get("x", 0)), int(params.get("y", 0))
+        duration = float(params.get("duration", 0.2))
+        await asyncio.to_thread(_move_mouse, x, y, duration)
+        return f"Moved mouse to ({x}, {y})."
+
+    async def _handle_click_mouse(self, params: dict) -> str:
+        x = params.get("x")
+        y = params.get("y")
+        if x is not None: x = int(x)
+        if y is not None: y = int(y)
+        button = params.get("button", "left")
+        clicks = int(params.get("clicks", 1))
+        await asyncio.to_thread(_click_mouse, x, y, button, clicks)
+        return f"Clicked {button} button {clicks} time(s)."
+
+    async def _handle_drag_mouse(self, params: dict) -> str:
+        x, y = int(params.get("x", 0)), int(params.get("y", 0))
+        duration = float(params.get("duration", 0.5))
+        button = params.get("button", "left")
+        await asyncio.to_thread(_drag_mouse, x, y, duration, button)
+        return f"Dragged {button} mouse to ({x}, {y})."
+
+    async def _handle_scroll_mouse(self, params: dict) -> str:
+        clicks = int(params.get("clicks", -100))
+        await asyncio.to_thread(_scroll_mouse, clicks)
+        return f"Scrolled {clicks} units."
 
     @staticmethod
     def _normalise(raw: str) -> list[str] | None:
