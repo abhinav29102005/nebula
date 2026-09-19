@@ -456,7 +456,18 @@ async def run_upgrade(
     elif overall_success:
         console.print("[bold green]✓ NEBULA upgrade routine completed successfully![/bold green]\n")
     else:
-        console.print("[bold red]⚠ NEBULA upgrade encountered issues during execution.[/bold red]\n")
+        console.print("[bold red]⚠ NEBULA upgrade encountered issues during execution.[/bold red]")
+        if not git_ok:
+            console.print("  [red]- Git pull failed or encountered a path conflict.[/red]")
+        if not dep_ok:
+            console.print("  [red]- Dependency synchronization (uv/pip) failed.[/red]")
+        if not voice_ok:
+            console.print("  [red]- Voice models verification/download failed.[/red]")
+        if not db_ok:
+            console.print("  [red]- Database migrations failed.[/red]")
+        if not env_ok:
+            console.print("  [red]- System environment check failed.[/red]")
+        console.print()
 
     return overall_success
 

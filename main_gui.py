@@ -174,6 +174,11 @@ def main() -> None:
 
     loop = qasync.QEventLoop(app)
     asyncio.set_event_loop(loop)
+    
+    # Override the default QThreadExecutor with a standard ThreadPoolExecutor
+    # to avoid QThreadStorage/GLib crashes on teardown.
+    from concurrent.futures import ThreadPoolExecutor
+    loop.set_default_executor(ThreadPoolExecutor(max_workers=10))
 
     with loop:
         loop.run_until_complete(run(app))
