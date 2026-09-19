@@ -210,7 +210,7 @@ class CLI:
             grid.add_column(justify="left", ratio=3)
             grid.add_column(justify="right", ratio=2)
 
-            grid.add_row("[bold bright_red]STATUS[/]  [bold green]● ONLINE[/]", "[bold bright_white]BUILD[/]  [cyan]v0.2.0[/]")
+            grid.add_row("[bold bright_magenta]STATUS[/]  [bold green]● ONLINE[/]", "[bold bright_white]BUILD[/]  [bright_blue]v0.2.0[/]")
             import os
             prov = os.getenv("LLM_PROVIDER", "dual").lower()
             if prov == "dual":
@@ -221,10 +221,10 @@ class CLI:
                 engine_label = "NVIDIA NIM ☁️ (Nemotron 120B)"
             else:
                 engine_label = f"Local LLM ({prov.upper()})"
-            grid.add_row(f"[bold bright_red]ENGINE[/]  [bright_white]{engine_label}[/]", f"[bold bright_white]MODE[/]   [cyan]{mode}[/]")
-            grid.add_row("[bold bright_red]RAG[/]     [bright_white]Streaming Live (Theme 4)[/]", "[bold bright_white]EXIT[/]   [dim]Ctrl + C[/]")
+            grid.add_row(f"[bold bright_magenta]ENGINE[/]  [bright_white]{engine_label}[/]", f"[bold bright_white]MODE[/]   [bright_blue]{mode}[/]")
+            grid.add_row("[bold bright_magenta]RAG[/]     [bright_white]Streaming Live (Theme 4)[/]", "[bold bright_white]EXIT[/]   [dim]Ctrl + C[/]")
 
-            title_text = Text(NEBULA_ASCII.strip("\n"), style="bold bright_red")
+            title_text = Text(NEBULA_ASCII.strip("\n"), style="bold bright_blue")
             sub_text = Text("\n  AUTONOMOUS AI DESKTOP AGENT & STREAMING LIVE RAG\n  Zero Parametric Hallucination · Strict Grounding · Dynamic Synthesis\n", style="bold white")
 
             panel_content = Table.grid(padding=0)
@@ -234,7 +234,7 @@ class CLI:
 
             panel = Panel(
                 panel_content,
-                border_style="bright_red",
+                border_style="bright_magenta",
                 title="[bold bright_white] SYSTEM INITIALIZED [/]",
                 subtitle="[dim]NEBULA Core Platform · Ready for Commands[/]",
                 padding=(1, 2),
@@ -291,8 +291,8 @@ class CLI:
 
             panel = Panel(
                 f"[bright_white]{text}[/]{citation_badge}",
-                border_style="bright_red",
-                title="[bold bright_red] NEBULA [/]",
+                border_style="bright_magenta",
+                title="[bold bright_blue] NEBULA [/]",
                 title_align="left",
                 padding=(0, 1),
             )
@@ -316,7 +316,7 @@ class CLI:
         """Display system shutdown notification."""
         CLI.clear_listening_bar()
         if _RICH_AVAILABLE and console is not None:
-            console.print("\n[bold bright_red]■ SHUTDOWN[/] [dim]Terminating active loops... NEBULA offline.[/]\n")
+            console.print("\n[bold bright_magenta]■ SHUTDOWN[/] [dim]Terminating active loops... NEBULA offline.[/]\n")
         else:
             print("\n[BYE] Shutting down... NEBULA offline.\n")
             sys.stdout.flush()
