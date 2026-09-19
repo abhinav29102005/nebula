@@ -106,11 +106,12 @@ PROVIDERS: Dict[str, ProviderInfo] = {
 }
 
 
-def update_env_file(key: str, value: str, env_path: str = ".env") -> bool:
+import os, pathlib
+def update_env_file(key: str, value: str, env_path: str = str(pathlib.Path(__file__).resolve().parent.parent / ".env")) -> bool:
     """Update or append an environment variable in the .env file."""
     path = Path(env_path)
     if not path.exists():
-        example = Path(".env.example")
+        example = Path(__file__).resolve().parent.parent / ".env.example"
         if example.exists():
             content = example.read_text(encoding="utf-8")
         else:
